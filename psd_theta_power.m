@@ -18,6 +18,8 @@ load([ROOT.Info '\session_info.mat']);  % session_list
 load(['D:\2. Neural data\Analysis\2.LFP_filtering_PSD\2.1.bestTT\2025-11-26\theta_TT.mat']); % theta_TT
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
+
+
 %% navigation & ITI 
 
 rat_list = {'774','779','780','781','816','817'};
@@ -90,31 +92,73 @@ for r = 1:numel(rat_list)
         trial_time = nan(NumberofTrial,2);
         iti_time   = nan(NumberofTrial,2);
 
-        for i = 1:NumberofTrial
-            tStart = tick_timestamp(ue_Trialstart(i));
-            tEnd   = tick_timestamp(ue_Trialend(i));
 
-            trial_time(i,1) = tStart;
-            trial_time(i,2) = tEnd;
+ue_Trialstart = ue_t{:,1};
+ue_Trialstart_ITI = ue_t{:,2};
+ue_RewardzoneArrival = ue_t{:,3};
+ue_Trialend = ue_t{:,4};
+ue_Trialend_ITI = ue_t{:,5};
+ue_start_direction = ue_t{:,6};
+ue_performance = ue_t{:,7};
+ue_performance_available = ue_t{:,8};
 
-            % ITI time: ITI start -> Trial start
-            if ~isempty(ue_Trialstart_ITI) && numel(ue_Trialstart_ITI) >= i && ~isnan(ue_Trialstart_ITI(i))
-                tITI = tick_timestamp(ue_Trialstart_ITI(i));
-                iti_time(i,1) = tITI;
-                iti_time(i,2) = tStart;
-            end
-        end
+
+
+        % for i = 1:NumberofTrial
+        %     tStart = tick_timestamp(ue_Trialstart(i));
+        %     tEnd   = tick_timestamp(ue_Trialend(i));
+        % 
+        %     trial_time(i,1) = tStart;
+        %     trial_time(i,2) = tEnd;
+        % 
+        %     % ITI time: ITI start -> Trial start
+        %     if ~isempty(ue_Trialstart_ITI) && numel(ue_Trialstart_ITI) >= i && ~isnan(ue_Trialstart_ITI(i))
+        %         tITI = tick_timestamp(ue_Trialstart_ITI(i));
+        %         iti_time(i,1) = tITI;
+        %         iti_time(i,2) = tStart;
+        %     end
+        % end
 
         % ITI 유효 trial만 남김 (NaN 구간 제거)
         iti_valid = ~isnan(iti_time(:,1)) & ~isnan(iti_time(:,2)) & (iti_time(:,2) > iti_time(:,1));
         iti_time  = iti_time(iti_valid, :);
 
+% time
+t = 0;
+trial_time = [];
+for i = 1:NumberofTrial
+    if ue_performance_available(i) == 1 %& ue_start_direction(i) == 90 %start direction
+       t = t+1;
+       trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
+       trial_time(t,2) = tick_timestamp(ue_RewardzoneArrival(i)); %navigation end 
+       trial_time(t,3) = i;  
+       trial_time(t,4) = tick_timestamp(ue_Trialstart_ITI(i)); % ITI start 
+    end
+end
 
-        % iHP
-        theta_iHP = [ROOT.Theta 'LE' char(rat) '\rat' char(rat) '-' ss '\AG' ...
-                   num2str(theta_info.bestTT_iHP) '_RateReduced_6-12filtered.ncs'];
-    
-       
+ theta_session = nan(NumberofTrial,1);
+    vel_session   = nan(NumberofTrial,1);
+
+% iHP theta power     
+%% ---------- trial loop ----------
+nT = size(trial_time,1);
+
+theta_trial_iHP  = nan(nT,1);
+theta_trial_mPFC = nan(nT,1);
+
+for tr = 1:nT
+
+    origTrial = trial_time(tr,3);
+
+    if ue_performance_available(origTrial) ~= 1
+        continue;
+    end
+
+    tS = trial_time(tr,1);
+    tE = trial_time(tr,2);
+
+%iHP 
+  theta_iHP = [ROOT.Theta 'LE' char(rat) '\rat' char(rat) '-' ss '\AG' num2str(theta_info.bestTT_iHP) '_RateReduced_6-12filtered.ncs'];
     HeaderExtractionFlag = 1;
     ExtractionMode = 1;
     ExtractionModeVector = [];
@@ -137,24 +181,20 @@ for r = 1:numel(rat_list)
     % expand CSC 
 
    [thetaband_iHP.eeg, thetaband_iHP.timestamp] = expandCSC(CSCdata);
-   
-        [~, idxStart] = min(abs(thetaband_iHP.timestamp - tStart));
-        [~, idxEnd] = min(abs(thetaband_iHP.timestamp -tEnd));
 
-        theta_seg_i = double(thetaband_iHP.eeg(idxStart:idxEnd));
-        tTheta_i    = double(thetaband_iHP.timestamp(idxStart:idxEnd));
-        theta_power_iHP = abs(hilbert(theta_seg_i));
-    
-        theta_trial_iHP(i) = mean(theta_power_iHP, 'omitnan');
-        theta_session_iHP(i) = mean(theta_trial_iHP, 'omitnan');
+    % ---- iHP ----
+    [~, idxStart] = min(abs(thetaband_iHP.timestamp - tS));
+    [~, idxEnd]   = min(abs(thetaband_iHP.timestamp - tE));
+
+    theta_seg_i = double(thetaband_iHP.eeg(idxStart:idxEnd));
+    theta_power_iHP = abs(hilbert(theta_seg_i));
+
+    theta_trial_iHP(tr) = mean(theta_power_iHP, 'omitnan');
 
 
-        % mPFC
-        theta_mPFC = [ROOT.Theta 'LE' char(rat) '\rat' char(rat) '-' ss '\AG' ...
-                    num2str(theta_info.bestTT_mPFC) '_RateReduced_6-12filtered.ncs'];
-       
-
- HeaderExtractionFlag = 1;
+  %mPFC 
+  theta_mPFC = [ROOT.Theta 'LE' char(rat) '\rat' char(rat) '-' ss '\AG' num2str(theta_info.bestTT_mPFC) '_RateReduced_6-12filtered.ncs'];
+    HeaderExtractionFlag = 1;
     ExtractionMode = 1;
     ExtractionModeVector = [];
     FieldSelectionFlags = [1 1 1 1 1];
@@ -176,15 +216,28 @@ for r = 1:numel(rat_list)
     % expand CSC 
 
    [thetaband_mPFC.eeg, thetaband_mPFC.timestamp] = expandCSC(CSCdata);
+   
 
+    % ---- mPFC ----
+    [~, idxStart] = min(abs(thetaband_mPFC.timestamp - tS));
+    [~, idxEnd]   = min(abs(thetaband_mPFC.timestamp - tE));
 
-    [~, idxStart] = min(abs(thetaband_mPFC.timestamp - tStart));
-        [~, idxEnd] = min(abs(thetaband_mPFC.timestamp -tEnd));
+    theta_seg_m = double(thetaband_mPFC.eeg(idxStart:idxEnd));
+    theta_power_mPFC = abs(hilbert(theta_seg_m));
 
-        theta_power_mPFC = abs(hilbert(theta_seg_i));
-    
-        theta_trial_mPFC(i) = mean(theta_power_iHP, 'omitnan');
-        theta_session_mPFC(i) = mean(theta_trial_iHP, 'omitnan');
+    theta_trial_mPFC(tr) = mean(theta_power_mPFC, 'omitnan');
+
+end
+
+% ✅ 세션 평균은 trial loop 끝난 뒤 한 번만
+theta_session_iHP  = mean(theta_trial_iHP,  'omitnan');
+theta_session_mPFC = mean(theta_trial_mPFC, 'omitnan');
+
+% save (세션 평균 scalar 1개씩)
+T_out = [T_out; {rat, ss_num, theta_session_iHP, theta_session_mPFC, theta_iHP_ITI, theta_mPFC_ITI, ...
+                 string(SL.goal(k)), string(SL.stage(k))}];
+    end
+end
 
 
         % % iHP
@@ -213,11 +266,10 @@ for r = 1:numel(rat_list)
         %     end
         % end
 
-        % save
-        T_out = [T_out; {rat, ss_num, theta_session_iHP, theta_session_mPFC, theta_iHP_ITI, theta_mPFC_ITI, ...
-                         string(SL.goal(k)), string(SL.stage(k))}];
-
-    end
-end
+%         % save
+%         T_out = [T_out; {rat, ss_num, theta_session_iHP, theta_session_mPFC, theta_iHP_ITI, theta_mPFC_ITI, ...
+%                          string(SL.goal(k)), string(SL.stage(k))}];
+% 
+% end
 
 save(fullfile(ROOT.Save,'theta_power_session_table_PSD_withITI.mat'), 'T_out');
