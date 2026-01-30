@@ -112,23 +112,23 @@ RewardZone.house.x = 0.7715; % RewardZone.house.x=5247; % east
 RewardZone.house.y = -0.1552; % RewardZone.house.y=-698; % east  
 
 %% exclude outliers (latency & travel distance)
-% % latency 
-% latency = ue_latency;   
-% n = 2;                  % 몇 MAD 기준인지
-% 
-% med = median(latency);
-% mad_val = mad(latency, 1);    % (median(|x - median(x)|)
-% 
-% threshold_l = med + n * mad_val;
-% 
-% % travel distance
-% travel_distance = ue_traveldistance;
-% n = 2;                  % 몇 MAD 기준인지
-% 
-% med = median(travel_distance);
-% mad_val = mad(travel_distance, 1);    % (median(|x - median(x)|)
-% 
-% threshold_td = med + n * mad_val;
+% latency 
+latency = ue_latency;   
+n = 2;                  
+
+med = median(latency);
+mad_val = mad(latency, 1);    % (median(|x - median(x)|)
+
+threshold_l = med + n * mad_val;
+
+% travel distance
+travel_distance = ue_traveldistance;
+n = 2;                 
+
+med = median(travel_distance);
+mad_val = mad(travel_distance, 1);    
+
+threshold_td = med + n * mad_val;
 
 %% theta power
 theta = [ROOT.Theta 'LE' rat '\rat' rat '-' ss '\AG' num2str(theta_info.bestTT_mPFC) '_RateReduced_6-12filtered.ncs'];
@@ -171,22 +171,10 @@ for i = 1:NumberofTrial
 
        t = t+1;
        trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
-       trial_time(t,2) = tick_timestamp(ue_Trialend(i)); %navigation end 
+       trial_time(t,2) = tick_timestamp(ue_RewardzoneArrival(i)); %navigation end 
        trial_time(t,3) = i;  
 end
 
-% % time
-% t = 0;
-% trial_time = [];
-% for i = 1:NumberofTrial
-%     if ue_performance_available(i) == 1 %& ue_start_direction(i) == 90 %start direction
-%        t = t+1;
-%        trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
-%        trial_time(t,2) = tick_timestamp(ue_Trialend(i)); %navigation end 
-%        trial_time(t,3) = i;  
-%     end
-% end
-% 
 %velocity 
 enc_vel = encoder_velocity;
 

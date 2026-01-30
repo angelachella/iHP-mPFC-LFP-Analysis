@@ -27,7 +27,7 @@ load([ROOT.Info '\session_info.mat']);
 load(['D:\2. Neural data\Analysis\2.LFP_filtering_PSD\2.1.bestTT\2025-11-26\theta_TT.mat']);
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
-target = '774-04';
+target = '780-16';
 temp = split(target, '-');
 rat = temp{1};
 ss = num2str(str2double(temp{2}));
@@ -112,23 +112,23 @@ RewardZone.house.x = 0.7715; % RewardZone.house.x=5247; % east
 RewardZone.house.y = -0.1552; % RewardZone.house.y=-698; % east  
 
 %% exclude outliers (latency & travel distance)
-% % latency 
-% latency = ue_latency;   
-% n = 2;                  % 몇 MAD 기준인지
-% 
-% med = median(latency);
-% mad_val = mad(latency, 1);    % (median(|x - median(x)|)
-% 
-% threshold_l = med + n * mad_val;
-% 
-% % travel distance
-% travel_distance = ue_traveldistance;
-% n = 2;                  % 몇 MAD 기준인지
-% 
-% med = median(travel_distance);
-% mad_val = mad(travel_distance, 1);    % (median(|x - median(x)|)
-% 
-% threshold_td = med + n * mad_val;
+% latency 
+latency = ue_latency;   
+n = 2;                  % 몇 MAD 기준인지
+
+med = median(latency);
+mad_val = mad(latency, 1);    % (median(|x - median(x)|)
+
+threshold_l = med + n * mad_val;
+
+% travel distance
+travel_distance = ue_traveldistance;
+n = 2;                  % 몇 MAD 기준인지
+
+med = median(travel_distance);
+mad_val = mad(travel_distance, 1);    % (median(|x - median(x)|)
+
+threshold_td = med + n * mad_val;
 
 %% theta power
 theta = [ROOT.Theta 'LE' rat '\rat' rat '-' ss '\AG' num2str(theta_info.bestTT_mPFC) '_RateReduced_6-12filtered.ncs'];
@@ -153,128 +153,27 @@ CSCdata.eeg = CSCdata.eeg.*CSCdata.ADBitVolts;
 t = 0;
 trial_time = [];
 for i = 1:NumberofTrial
-    % if ue_performance_available(i) ~= 1
-    %     continue;
-    % end
-    % 
-    % if ue_latency(i) > threshold_l
-    %     continue;
-    % end
-    % 
-    % if ue_traveldistance(i) > threshold_td
-    %     continue;
-    % end
-      
-    if ue_performance(i) ~= 2
-          continue;
-      end
+    if ue_performance_available(i) ~= 1
+        continue;
+    end
+
+    if ue_start_direction(i) ~= 270 
+        continue;
+    end
+
+    if ue_latency(i) > threshold_l
+        continue;
+    end
+
+    if ue_traveldistance(i) > threshold_td
+        continue;
+    end
 
        t = t+1;
        trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
-       trial_time(t,2) = tick_timestamp(ue_Trialend(i)); %navigation end 
+       trial_time(t,2) = tick_timestamp(ue_RewardzoneArrival(i)); %navigation end 
        trial_time(t,3) = i;  
 end
-% %% =========================
-% % Parameters
-% %% =========================
-% wTheta = 200;   % theta smoothing window (samples)
-% wVel   = 50;    % velocity smoothing window (samples)
-% 
-% %% =========================
-% % 1) Per-trial features: mean theta power & mean velocity
-% %% =========================
-% nT = size(trial_time,1);
-% 
-% theta_trial = nan(nT,1);
-% vel_trial   = nan(nT,1);
-% 
-% for i = 1:nT
-% 
-%     % ----- trial start/end (timestamp) -----
-%     tS = trial_time(i,1);
-%     tE = trial_time(i,2);
-% 
-%     % =========================
-%     % (A) theta power (thetaband_iHP)
-%     % =========================
-%     [~, idxStart] = min(abs(thetaband_iHP.timestamp - tS));
-%     [~, idxEnd]   = min(abs(thetaband_iHP.timestamp - tE));
-%     if idxEnd <= idxStart
-%         continue;
-%     end
-% 
-%     x = double(thetaband_iHP.eeg(idxStart:idxEnd));
-% 
-%     % Hilbert envelope (theta power proxy) + smoothing
-%     theta_power = abs(hilbert(x));
-%     theta_sm    = smoothdata(theta_power, "gaussian", wTheta);
-% 
-%     % trial-wise summary (mean; 필요하면 median으로 바꿔도 됨)
-%     theta_trial(i) = mean(theta_sm, 'omitnan');
-% 
-%     % =========================
-%     % (B) velocity (encoder_velocity)
-%     % tick_timestamp와 row가 같으므로, 같은 row 구간 slice
-%     % =========================
-%     [~, rS] = min(abs(tick_timestamp - tS));
-%     [~, rE] = min(abs(tick_timestamp - tE));
-%     if rE <= rS
-%         continue;
-%     end
-% 
-%     v = double(encoder_velocity(rS:rE));
-%     if numel(v) < 2
-%         continue;
-%     end
-%     v_sm = smoothdata(v, "gaussian", wVel);
-% 
-%     vel_trial(i) = mean(v_sm, 'omitnan');
-% end
-% 
-% % 유효한 trial만
-% ok = isfinite(theta_trial) & isfinite(vel_trial);
-% xVel = vel_trial(ok);
-% yThe = theta_trial(ok);
-% 
-% fprintf('Valid trials used for regression: %d / %d\n', sum(ok), nT);
-% 
-% %% =========================
-% % 2) Linear regression
-% %% =========================
-% % 간단 선형회귀: y = b0 + b1*x
-% p = polyfit(xVel, yThe, 1);
-% yHat = polyval(p, xVel);
-% 
-% % R^2
-% SSres = sum((yThe - yHat).^2);
-% SStot = sum((yThe - mean(yThe)).^2);
-% R2 = 1 - SSres/SStot;
-% 
-% % p-value (slope): MATLAB stats toolbox 있으면 regstats / fitlm도 가능하지만,
-% % 여기서는 corr 기반으로 (선형관계의 유의성) p를 구함.
-% [r, pval] = corr(xVel, yThe, 'Type', 'Pearson', 'Rows', 'complete');
-% 
-% %% =========================
-% % 3) Plot: scatter + regression line (single figure)
-% %% =========================
-% figure('Color','w'); hold on; box off;
-% 
-% scatter(xVel, yThe, 35, 'filled', 'MarkerFaceAlpha', 0.6);  % 점(투명)
-% % 회귀선 (x 범위 전체)
-% xx = linspace(min(xVel), max(xVel), 200);
-% yy = polyval(p, xx);
-% plot(xx, yy, 'k-', 'LineWidth', 2);
-% 
-% xlabel('Mean velocity (trial)');
-% ylabel('Mean theta power');
-% title(sprintf(['Theta power vs velocity | r = %.3f'], r));
-%   %    p = %.3g, R^2 = %.3f'], r, pval, R2));
-
-% (옵션) 회귀식 텍스트
-% txt = sprintf('y = %.3g x + %.3g', p(1), p(2));
-% text(0.02, 0.95, txt, 'Units','normalized', 'VerticalAlignment','top');
-
-
 
 % % time
 % t = 0;

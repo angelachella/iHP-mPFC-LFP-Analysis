@@ -22,7 +22,7 @@ if ~exist(ROOT.Save); mkdir(ROOT.Save); end
 
 %% Load files
 
-load(['D:\1. Behavioral data\results\theta_power_analysis\2026-01-28\\theta_power_session_table_PSD_withITI.mat']);
+load(['D:\1. Behavioral data\results\theta_power_analysis\2026-01-30\theta_power_session_table_Hilbert_withITI.mat']);
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
 %%  bar graph pre vs. post (all rats)
@@ -45,37 +45,43 @@ for g = 1:numel(goals)
 
         Tr = T_out(T_out.rat==rats(r) & T_out.goal==goal_g, :);
 
-        pre_v  = Tr.theta_power_iHP(Tr.stage=="Pre");
-        post_v = Tr.theta_power_iHP(Tr.stage=="Post");
+        pre_v  = Tr.theta_power_mPFC(Tr.stage=="Pre");
+        post_v = Tr.theta_power_mPFC(Tr.stage=="Post");
 
         if ~isempty(pre_v) && ~isempty(post_v)
             pre(r)  = mean(pre_v,'omitnan');
             post(r) = mean(post_v,'omitnan');
         end
+
+% ✅ mPFC 없는 rat은 제외 (paired로 둘 다 있는 rat만)
+    keep = ~isnan(pre) & ~isnan(post);
+    preK  = pre(keep);
+    postK = post(keep);
+
     end
 
     %p = signrank(pre, post); % Wilcoxon signed-rank test
-    [~, p, ci, stats] = ttest(pre, post); % paired t-test
+    [~, p, ci, stats] = ttest(preK, postK); % paired t-test
 
 % plot
     figure('Color','w','Position',[100 100 400 400]); hold on; box off;
 
-    m = [mean(pre) mean(post)];
-    sem = [std(pre)/sqrt(numel(pre)), std(post)/sqrt(numel(post))];
+    m = [mean(preK) mean(postK)];
+    sem = [std(preK)/sqrt(numel(preK)), std(postK)/sqrt(numel(postK))];
 
     bar([1 2], m, 0.6, 'FaceColor',[0.85 0.85 0.85]);
     errorbar([1 2], m, sem, 'k', 'LineStyle','none','LineWidth',1);
 
     % paired dots
-    for i = 1:numel(pre)
-        plot([1 2], [pre(i) post(i)], '-', 'Color',[0.5 0.5 0.5]);
-        scatter([1 2], [pre(i) post(i)], 40, 'k', 'filled');
+    for i = 1:numel(preK)
+        plot([1 2], [preK(i) postK(i)], '-', 'Color',[0.5 0.5 0.5]);
+        scatter([1 2], [preK(i) postK(i)], 40, 'k', 'filled');
     end
 
     set(gca,'XTick',[1 2],'XTickLabel',{'Pre','Post'});
-    ylabel('iHP theta power');
-    title(sprintf('%s | iHP theta (Pre vs Post)\np = %.3g (n = %d)', ...
-                  goal_g, p, numel(pre)));
+    ylabel('mPFC theta power');
+    title(sprintf('%s | mPFC theta (Pre vs Post)\np = %.3g (n = %d)', ...
+                  goal_g, p, numel(preK)));
 end
 
 
