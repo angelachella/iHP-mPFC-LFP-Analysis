@@ -42,7 +42,55 @@ T_out = table( ...
                       'theta_power_iHP_ITI','theta_power_mPFC_ITI', ...
                       'goal','stage'});
 
+for rr = 1:numel(rat_list)
 
+    rat = string(rat_list{rr});
+    SL  = session_list(string(session_list.rat)==rat, :);
+
+    for k = 1:height(SL)
+
+        ss_num = SL.ss(k);
+        if isstring(ss_num) || ischar(ss_num)
+            ss_num = str2double(ss_num);
+        end
+        ss = num2str(ss_num);
+
+        target  = char(rat + "-" + sprintf('%02d', ss_num));
+        behFile = fullfile(ROOT.Data, [target '.mat']);
+        if ~exist(behFile,'file')
+            continue;
+        end
+
+        % default outputs
+        theta_iHP      = nan;
+        theta_mPFC     = nan;
+        theta_iHP_ITI  = nan;
+        theta_mPFC_ITI = nan;
+
+        % theta_TT check
+        target_ss_id = ['r' char(rat) '_' ss];
+        if ~isfield(theta_TT, target_ss_id)
+            T_out = [T_out; {rat, ss_num, theta_iHP, theta_mPFC, theta_iHP_ITI, theta_mPFC_ITI, ...
+                             string(SL.goal(k)), string(SL.stage(k))}];
+            continue;
+        end
+        theta_info = theta_TT.(target_ss_id);
+
+        %% ===== load behaviour =====
+        load(behFile, 'cheetah','ue_t');
+        tick_timestamp = cheetah.tick;
+
+        ue_Trialstart          = ue_t{:,1};
+        ue_Trialstart_ITI      = ue_t{:,2};
+        ue_Trialend            = ue_t{:,3}; %rewardzone_arrival 
+        ue_performance_available = ue_t{:,8};
+
+        NumberofTrial = numel(ue_Trialstart);
+
+        trial_time = nan(NumberofTrial,2);
+        iti_time   = nan(NumberofTrial,2);
+
+       
         for i = 1:NumberofTrial
             tStart = tick_timestamp(ue_Trialstart(i));
             tEnd   = tick_timestamp(ue_Trialend(i));
@@ -61,11 +109,8 @@ T_out = table( ...
         % ITI 유효 trial만 남김 (NaN 구간 제거)
         iti_valid = ~isnan(iti_time(:,1)) & ~isnan(iti_time(:,2)) & (iti_time(:,2) > iti_time(:,1));
         iti_time  = iti_time(iti_valid, :);
-    end
-
-
-
-
+       
+    
         % iHP
         iHPfile = [ROOT.Theta 'LE' char(rat) '\rat' char(rat) '-' ss '\AG' ...
                    num2str(theta_info.bestTT_iHP) '_RateReduced_3-300filtered.ncs'];
@@ -93,9 +138,9 @@ T_out = table( ...
         end
 
         % save
-        T_out = [T_out; {rat, ss_num, theta_session_iHP, theta_session_mPFC, theta_iHP_ITI, theta_mPFC_ITI, ...
+        T_out = [T_out; {rat, ss_num, theta_iHP, theta_mPFC, theta_iHP_ITI, theta_mPFC_ITI, ...
                          string(SL.goal(k)), string(SL.stage(k))}];
-
+    end
 end
 
 save(fullfile(ROOT.Save,'theta_power_session_table_PSD_withITI.mat'), 'T_out');
