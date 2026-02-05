@@ -198,8 +198,8 @@ for k = 1:size(trial_time,1)
 end
 
 
-%% 1) normalised time grid에 보간해서 trial x timebin 행렬 만들기
-
+% %% 1) normalised time grid에 보간해서 trial x timebin 행렬 만들기
+% 
 nBin  = 300;
 tGrid = linspace(0,1,nBin)';
 
@@ -209,84 +209,85 @@ wVel   = 50;
 Ztheta = nan(size(trial_time,1), nBin);
 Zvel   = nan(size(trial_time,1), nBin);
 
-for i = 1:size(trial_time,1)
+% for i = 1:size(trial_time,1)
+% 
+% 
+%     % theta (thetaband_iHP)
+% 
+%     [~, idxStart] = min(abs(thetaband_iHP.timestamp - trial_time(i,1)));
+%     [~, idxEnd]   = min(abs(thetaband_iHP.timestamp - trial_time(i,2)));
+%     if idxEnd <= idxStart, continue; end
+% 
+%     x = double(thetaband_iHP.eeg(idxStart:idxEnd));
+%     theta_power = abs(hilbert(x));
+%     theta_sm    = smoothdata(theta_power, "gaussian", wTheta);
+% 
+%     tt_theta = linspace(0,1,numel(theta_sm))';
+%     Ztheta(i,:) = interp1(tt_theta, theta_sm, tGrid, 'linear', NaN);
+% 
+%     % =========================
+%     % (B) velocity (encoder_velocity)
+%     % tick_timestamp와 row가 같으므로, 같은 row 구간을 slice
+%     % =========================
+%     tS = trial_time(i,1);
+%     tE = trial_time(i,2);
+% 
+%     [~, rS] = min(abs(tick_timestamp - tS));
+%     [~, rE] = min(abs(tick_timestamp - tE));
+%     if rE <= rS, continue; end
+% 
+%     v = double(enc_vel(rS:rE));
+%     if numel(v) < 2, continue; end
+%     v = smoothdata(v, "gaussian", wVel);
+% 
+%     tt_vel = linspace(0,1,numel(v))';
+%     Zvel(i,:) = interp1(tt_vel, v, tGrid, 'linear', NaN);
+% end
+% 
+% % SEM
+% okBoth = any(isfinite(Ztheta),2) & any(isfinite(Zvel),2);
+% Zt = Ztheta(okBoth,:);
+% Zv = Zvel(okBoth,:);
+% 
+% theta_mean = nanmean(Zt, 1);
+% vel_mean   = nanmean(Zv, 1);
+% 
+% theta_sem  = nanstd(Zt, 0, 1) ./ sqrt(sum(isfinite(Zt),1));
+% vel_sem    = nanstd(Zv, 0, 1) ./ sqrt(sum(isfinite(Zv),1));
+% 
+% 
+% % mean 
+% okBoth = any(isfinite(Ztheta),2) & any(isfinite(Zvel),2);
+% Zt = Ztheta(okBoth,:);
+% Zv = Zvel(okBoth,:);
+% 
+% theta_mean = nanmean(Zt, 1);
+% vel_mean   = nanmean(Zv, 1);
+% 
+% % plot
+% figure('Color','w'); box off;
+% 
+% yyaxis left; hold on;
+% 
+% % SEM band (theta)
+% fill([tGrid; flipud(tGrid)], ...
+%      [theta_mean-theta_sem, fliplr(theta_mean+theta_sem)]', ...
+%      [0.5 0.5 0.5], 'EdgeColor','none', 'FaceAlpha', 0.5);
+% 
+% h1 = plot(tGrid, theta_mean, 'k', 'LineWidth', 2);
+% ylabel('Theta power ');
+% 
+% yyaxis right; hold on;
+% 
+% % SEM band (velocity)
+% fill([tGrid; flipud(tGrid)], ...
+%      [vel_mean-vel_sem, fliplr(vel_mean+vel_sem)]', ...
+%      [0.95 0.55 0.15], 'EdgeColor','none', 'FaceAlpha', 0.25);
+% 
+% h2 = plot(tGrid, vel_mean, 'LineWidth', 2);
+% ylabel('Velocity');
+% 
+% xlabel('Normalized time within trial (0=start, 1=end)');
+% title(['Session ' rat '-' ss ' | theta power & velocity (mean)']);
+% legend([h1 h2], {'Theta power', 'Velocity'}, 'Location', 'best');
 
-
-    % theta (thetaband_iHP)
-
-    [~, idxStart] = min(abs(thetaband_iHP.timestamp - trial_time(i,1)));
-    [~, idxEnd]   = min(abs(thetaband_iHP.timestamp - trial_time(i,2)));
-    if idxEnd <= idxStart, continue; end
-
-    x = double(thetaband_iHP.eeg(idxStart:idxEnd));
-    theta_power = abs(hilbert(x));
-    theta_sm    = smoothdata(theta_power, "gaussian", wTheta);
-
-    tt_theta = linspace(0,1,numel(theta_sm))';
-    Ztheta(i,:) = interp1(tt_theta, theta_sm, tGrid, 'linear', NaN);
-
-    % =========================
-    % (B) velocity (encoder_velocity)
-    % tick_timestamp와 row가 같으므로, 같은 row 구간을 slice
-    % =========================
-    tS = trial_time(i,1);
-    tE = trial_time(i,2);
-
-    [~, rS] = min(abs(tick_timestamp - tS));
-    [~, rE] = min(abs(tick_timestamp - tE));
-    if rE <= rS, continue; end
-
-    v = double(enc_vel(rS:rE));
-    if numel(v) < 2, continue; end
-    v = smoothdata(v, "gaussian", wVel);
-
-    tt_vel = linspace(0,1,numel(v))';
-    Zvel(i,:) = interp1(tt_vel, v, tGrid, 'linear', NaN);
-end
-
-% SEM
-okBoth = any(isfinite(Ztheta),2) & any(isfinite(Zvel),2);
-Zt = Ztheta(okBoth,:);
-Zv = Zvel(okBoth,:);
-
-theta_mean = nanmean(Zt, 1);
-vel_mean   = nanmean(Zv, 1);
-
-theta_sem  = nanstd(Zt, 0, 1) ./ sqrt(sum(isfinite(Zt),1));
-vel_sem    = nanstd(Zv, 0, 1) ./ sqrt(sum(isfinite(Zv),1));
-
-
-% mean 
-okBoth = any(isfinite(Ztheta),2) & any(isfinite(Zvel),2);
-Zt = Ztheta(okBoth,:);
-Zv = Zvel(okBoth,:);
-
-theta_mean = nanmean(Zt, 1);
-vel_mean   = nanmean(Zv, 1);
-
-% plot
-figure('Color','w'); box off;
-
-yyaxis left; hold on;
-
-% SEM band (theta)
-fill([tGrid; flipud(tGrid)], ...
-     [theta_mean-theta_sem, fliplr(theta_mean+theta_sem)]', ...
-     [0.5 0.5 0.5], 'EdgeColor','none', 'FaceAlpha', 0.5);
-
-h1 = plot(tGrid, theta_mean, 'k', 'LineWidth', 2);
-ylabel('Theta power ');
-
-yyaxis right; hold on;
-
-% SEM band (velocity)
-fill([tGrid; flipud(tGrid)], ...
-     [vel_mean-vel_sem, fliplr(vel_mean+vel_sem)]', ...
-     [0.95 0.55 0.15], 'EdgeColor','none', 'FaceAlpha', 0.25);
-
-h2 = plot(tGrid, vel_mean, 'LineWidth', 2);
-ylabel('Velocity');
-
-xlabel('Normalized time within trial (0=start, 1=end)');
-title(['Session ' rat '-' ss ' | theta power & velocity (mean)']);
-legend([h1 h2], {'Theta power', 'Velocity'}, 'Location', 'best');

@@ -130,7 +130,7 @@ mad_val = mad(travel_distance, 1);    % (median(|x - median(x)|)
 threshold_td = med + n * mad_val;
 
 %% theta power
-theta = [ROOT.Theta 'LE' rat '\rat' rat '-' ss '\AG' num2str(theta_info.bestTT_mPFC) '_RateReduced_6-12filtered.ncs'];
+theta = [ROOT.Theta 'LE' rat '\rat' rat '-' ss '\AG' num2str(theta_info.bestTT_iHP) '_RateReduced_6-12filtered.ncs'];
     HeaderExtractionFlag = 1;
     ExtractionMode = 1;
     ExtractionModeVector = [];
@@ -156,17 +156,22 @@ for i = 1:NumberofTrial
         continue;
     end
 
-    if ue_start_direction(i) ~= 90 
+     % if ue_start_direction(i) ~= 90 
+     %     continue;
+     % end
+
+    if ue_t.performance(i) ~=1
         continue;
     end
 
-    if ue_latency(i) > threshold_l
-        continue;
-    end
-
-    if ue_traveldistance(i) > threshold_td
-        continue;
-    end
+    % 
+    % if ue_latency(i) > threshold_l
+    %     continue;
+    % end
+    % 
+    % if ue_traveldistance(i) > threshold_td
+    %     continue;
+    % end
 
        t = t+1;
        trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
@@ -175,7 +180,7 @@ for i = 1:NumberofTrial
 end
 
 %velocity 
-enc_vel = encoder_velocity;
+enc_vel = abs(encoder_angspeed);
 
 all_vel = [];              % 모든 trial 구간 velocity를 이어붙인 1개의 벡터
 all_trial_id = [];         % (옵션) 각 샘플이 어떤 trial인지 표시
@@ -268,31 +273,78 @@ vel_sem    = std(VelBin,   0, 1, 'omitnan') ./ sqrt(sum(~isnan(VelBin),1));
 xBin = linspace(0,1,nBin);
 
 
-% plotting (dual y-axis)
+% % plotting (dual y-axis)
+% 
+% fig = figure('Color','w'); box off;
+% 
+% yyaxis left; hold on;
+% fill([xBin fliplr(xBin)], ...
+%      [theta_mean-theta_sem fliplr(theta_mean+theta_sem)], ...
+%      [0.5 0.5 0.5], 'EdgeColor','none', 'FaceAlpha',0.4);
+% h1 = plot(xBin, theta_mean, 'k', 'LineWidth',2);
+% ylabel('Theta power');
+% 
+% yyaxis right; hold on;
+% fill([xBin fliplr(xBin)], ...
+%      [vel_mean-vel_sem fliplr(vel_mean+vel_sem)], ...
+%      [0.95 0.55 0.15], 'EdgeColor','none', 'FaceAlpha',0.25);
+% h2 = plot(xBin, vel_mean, 'LineWidth',2);
+% ylabel('Velocity');
+% 
+% xlabel('Normalized time within trial');
+% title(['Session ' rat '-' ss ' | theta power & velocity (100-bin average)']);
+% legend([h1 h2], {'Theta power','Velocity'}, 'Location','best');
+% 
+% fig = gcf;
+% fname = fullfile(ROOT.Save, ['theta_vs_velocity_North(iHP)' target '.png']);
+% saveas(fig, fname);
 
-fig = figure('Color','w'); box off;
 
-yyaxis left; hold on;
-fill([xBin fliplr(xBin)], ...
-     [theta_mean-theta_sem fliplr(theta_mean+theta_sem)], ...
-     [0.5 0.5 0.5], 'EdgeColor','none', 'FaceAlpha',0.4);
-h1 = plot(xBin, theta_mean, 'k', 'LineWidth',2);
-ylabel('Theta power');
+%% ============================================================
+% Scatter of (VelBin, ThetaBin) across ALL trials & bins + correlation
+% Requires: ThetaBin (trial x bin), VelBin (trial x bin)
+%% ============================================================
 
-yyaxis right; hold on;
-fill([xBin fliplr(xBin)], ...
-     [vel_mean-vel_sem fliplr(vel_mean+vel_sem)], ...
-     [0.95 0.55 0.15], 'EdgeColor','none', 'FaceAlpha',0.25);
-h2 = plot(xBin, vel_mean, 'LineWidth',2);
-ylabel('Velocity');
+useType = 'Pearson';   % 'Pearson'도 가능
+doZ = false;            % true면 theta/vel을 전체 z-score로 표준화해서 shape만 보기
 
-xlabel('Normalized time within trial');
-title(['Session ' rat '-' ss ' | theta power & velocity (100-bin average)']);
-legend([h1 h2], {'Theta power','Velocity'}, 'Location','best');
+% 1) Flatten (trial x bin) -> (N x 1)
+theta_all = ThetaBin(:);
+vel_all   = VelBin(:);
 
-fig = gcf;
-fname = fullfile(ROOT.Save, ['theta_vs_velocity_North(iHP)' target '.png']);
-saveas(fig, fname);
+% 2) Remove NaNs
+ok = ~isnan(theta_all) & ~isnan(vel_all);
+theta_all = double(theta_all(ok));
+vel_all   = double(vel_all(ok));
+
+% % 3) (optional) z-score
+% if doZ
+%     theta_all = (theta_all - mean(theta_all,'omitnan')) ./ std(theta_all,0,'omitnan');
+%     vel_all   = (vel_all   - mean(vel_all,'omitnan'))   ./ std(vel_all,0,'omitnan');
+% end
+
+% 4) Correlation
+[rho, pval] = corr(theta_all, vel_all, 'Type', useType, 'Rows','complete');
+
+% 5) Fit line (for visual guidance)
+% Pearson이면 polyfit이 직관적이고, Spearman이어도 "시각적 추세선"으로는 OK
+P = polyfit(vel_all, theta_all, 1);
+xfit = linspace(min(vel_all), max(vel_all), 200);
+yfit = polyval(P, xfit);
+
+% 6) Plot
+figure('Color','w'); hold on; box off
+scatter(vel_all, theta_all, 12, 'filled', 'MarkerFaceAlpha', 0.15, 'MarkerEdgeAlpha', 0.15);
+plot(xfit, yfit, 'LineWidth', 2);
+
+xlabel('Velocity (binned)');
+ylabel('Theta power (binned)');
+title(sprintf('LE %s iHP Theta–velocity %s rho = %.3f', ...
+      target, useType, rho));
+
+
+
+
 
 
 % %% plot
