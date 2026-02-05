@@ -22,7 +22,7 @@ if ~exist(ROOT.Save); mkdir(ROOT.Save); end
 
 %% Load files
 
-load(['D:\1. Behavioral data\results\theta_power_analysis\2026-01-30\theta_power_session_table_Hilbert_withITI.mat']);
+load(['D:\1. Behavioral data\results\theta_power_analysis\2026-01-31\\theta_power_session_table_PSD_withITI.mat']);
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
 %%  bar graph pre vs. post (all rats)
@@ -45,8 +45,8 @@ for g = 1:numel(goals)
 
         Tr = T_out(T_out.rat==rats(r) & T_out.goal==goal_g, :);
 
-        pre_v  = Tr.theta_power_mPFC(Tr.stage=="Pre");
-        post_v = Tr.theta_power_mPFC(Tr.stage=="Post");
+        pre_v  = Tr.theta_power_iHP(Tr.stage=="Pre");
+        post_v = Tr.theta_power_iHP(Tr.stage=="Post");
 
         if ~isempty(pre_v) && ~isempty(post_v)
             pre(r)  = mean(pre_v,'omitnan');
@@ -79,8 +79,8 @@ for g = 1:numel(goals)
     end
 
     set(gca,'XTick',[1 2],'XTickLabel',{'Pre','Post'});
-    ylabel('mPFC theta power');
-    title(sprintf('%s | mPFC theta (Pre vs Post)\np = %.3g (n = %d)', ...
+    ylabel('iHP theta power');
+    title(sprintf('%s | iHP theta (Pre vs Post)\np = %.3g (n = %d)', ...
                   goal_g, p, numel(preK)));
 end
 
@@ -251,8 +251,8 @@ for g = 1:numel(goals)
 
         Tr = T_out(T_out.rat==rats(r) & T_out.goal==goal_g, :);
 
-        pre  = mean(Tr.theta_power_iHP(Tr.stage=="Pre"),  'omitnan');
-        post = mean(Tr.theta_power_iHP(Tr.stage=="Post"), 'omitnan');
+        pre  = mean(Tr.theta_power_mPFC(Tr.stage=="Pre"),  'omitnan');
+        post = mean(Tr.theta_power_mPFC(Tr.stage=="Post"), 'omitnan');
 
         if ~isnan(pre) && ~isnan(post)
             h(end+1,1) = plot([1 2], [pre post], '-o', ...
@@ -265,9 +265,69 @@ for g = 1:numel(goals)
 
     xlim([0.8 2.2]);
     set(gca,'XTick',[1 2],'XTickLabel',{'Pre','Post'});
-    ylabel('iHP theta power');
-    title(sprintf('%s | iHP theta', goal_g));
+    ylabel('mPFC theta power');
+    title(sprintf('%s | mPFC theta', goal_g));
 
     legend(h, leg, 'Location','bestoutside');   % ✅ 정확히 매칭
 
+end
+
+%% day-by-dy theta power change 
+T = T_out;
+
+% --- type safety ---
+T.rat   = string(T.rat);
+T.goal  = string(T.goal);
+T.stage = string(T.stage);
+
+if ~isnumeric(T.ss)
+    T.ss = double(string(T.ss));
+end
+
+rats = unique(T.rat);
+
+for r = 1:numel(rats)
+
+    rat_id = rats(r);
+    Tr = T(T.rat==rat_id, :);
+
+    % session order 유지
+    [~, ord] = sort(Tr.ss);
+    Tr = Tr(ord,:);
+
+    x  = Tr.ss;
+    y1 = Tr.theta_power_iHP;
+    y2 = Tr.theta_power_mPFC;
+
+    figure('Color','w','Position',[100 100 500 400]);
+    hold on; box off;
+
+    %% ===== iHP (left axis) =====
+    yyaxis left
+    plot(x, y1, '-o', 'LineWidth',1.5, 'MarkerSize',4);
+    ylabel('iHP theta power');
+
+    % %% ===== mPFC (right axis) =====
+    % yyaxis right
+    % plot(x, y2, '-o', 'LineWidth',1.5, 'MarkerSize',4);
+    % ylabel('mPFC theta power');
+
+    %% ===== East first session (BLACK line) =====
+    idxEast = Tr.goal=="East";
+    if any(idxEast)
+        xline(min(Tr.ss(idxEast)), 'k-', 'LineWidth',2);
+    end
+
+    %% ===== Post first session(s) (RED line) =====
+    idxPost = find(Tr.stage=="Post");
+    if ~isempty(idxPost)
+        % 첫 Post 세션만 표시 (여러 goal 있어도)
+        xline(Tr.ss(idxPost(1)), 'r-', 'LineWidth',2);
+    end
+
+    %% ===== cosmetics =====
+    xlabel('Session (ss)');
+    title("LE " + rat_id + "  session-wise theta power");
+
+    xlim([min(x) max(x)]);
 end

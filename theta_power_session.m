@@ -53,63 +53,63 @@ params.trialave = 1;
 params.err = [2 0.05];
 params.pad = 0;
 
-% %% ue variables
-% tick_timestamp = cheetah.tick;
-% trial_timestamp = cheetah.trial;
-% cueonset_timestamp = cheetah.cueonset;
-% HighValue_timestamp = cheetah.highvalue;
-% LowValue_timestamp = cheetah.lowvalue;
-% NStart_timestamp = cheetah.northstart;
-% SStart_timestamp = cheetah.southstart;
-% 
-% ue_timestamp.main = ue{:,1};
-% ue_time = ue{:,2};
-% ue_trial.main = ue{:,3};
-% ue_trial.ITIstart = ue{:,4};
-% ue_performance_available_frame = ue{:,5};
-% ue_position.main = ue{:,6:7};
-% ue_head_direction = ue{:,8};
-% ue_cumdistance = ue{:,9};
-% ue_DistancefromRewardzone = ue{:,10};
-% ue_velocity = ue{:,11};
-% ue_velocity_smoothing_500ms = ue{:,12};
-% ue_ang_velocity = ue{:,13};
-% ue_ang_velocity_smoothing_500ms = ue{:,14};
-% ue_edge = ue{:,15};
-% ue_flag = ue{:,16};
-% ue_FrameofITI = ue{:,17};
-% ue_reward_zone_arrival = ue{:,18}; % directly from UE log
-% ue_highvaluezone = ue{:,19}; % directly from UE log
-% 
-% ue_Trialstart = ue_t{:,1};
-% ue_Trialstart_ITI = ue_t{:,2};
-% ue_RewardzoneArrival = ue_t{:,3};
-% ue_Trialend = ue_t{:,4};
-% ue_Trialend_ITI = ue_t{:,5};
-% ue_start_direction = ue_t{:,6};
-% ue_performance = ue_t{:,7};
-% ue_performance_available = ue_t{:,8};
-% ue_latency = ue_t{:,9};
-% ue_traveldistance = ue_t{:,10};
-% ue_EdgeDistance = ue_t{:,11};
-% ue_PercentofEdgeNav = ue_t{:,12};
-% ue_guide_trial = ue_t{:,13};
-% ue_outlier = ue_t{:,14};
-% ue_outlier_distance = ue_t{:,15};
-% ue_outlier_latency = ue_t{:,16};
-% ue_outlier_latency_scene = ue_t{:,17};
-% 
-% encoder_position = encoder{:,1:2};
-% encoder_velocity = encoder{:,3};
-% encoder_velocity_smoothing_500ms = encoder{:,4};
-% encoder_distance = encoder{:,5};
-% encoder_degree = encoder{:,6};
-% encoder_angspeed = encoder{:,7};
-% 
-% NumberofFrame = size(ue_timestamp.main,1);
-% NumberofTrial = ue_trial.main(NumberofFrame)-1;
-% 
-% 
+%% ue variables
+tick_timestamp = cheetah.tick;
+trial_timestamp = cheetah.trial;
+cueonset_timestamp = cheetah.cueonset;
+HighValue_timestamp = cheetah.highvalue;
+LowValue_timestamp = cheetah.lowvalue;
+NStart_timestamp = cheetah.northstart;
+SStart_timestamp = cheetah.southstart;
+
+ue_timestamp.main = ue{:,1};
+ue_time = ue{:,2};
+ue_trial.main = ue{:,3};
+ue_trial.ITIstart = ue{:,4};
+ue_performance_available_frame = ue{:,5};
+ue_position.main = ue{:,6:7};
+ue_head_direction = ue{:,8};
+ue_cumdistance = ue{:,9};
+ue_DistancefromRewardzone = ue{:,10};
+ue_velocity = ue{:,11};
+ue_velocity_smoothing_500ms = ue{:,12};
+ue_ang_velocity = ue{:,13};
+ue_ang_velocity_smoothing_500ms = ue{:,14};
+ue_edge = ue{:,15};
+ue_flag = ue{:,16};
+ue_FrameofITI = ue{:,17};
+ue_reward_zone_arrival = ue{:,18}; % directly from UE log
+ue_highvaluezone = ue{:,19}; % directly from UE log
+
+ue_Trialstart = ue_t{:,1};
+ue_Trialstart_ITI = ue_t{:,2};
+ue_RewardzoneArrival = ue_t{:,3};
+ue_Trialend = ue_t{:,4};
+ue_Trialend_ITI = ue_t{:,5};
+ue_start_direction = ue_t{:,6};
+ue_performance = ue_t{:,7};
+ue_performance_available = ue_t{:,8};
+ue_latency = ue_t{:,9};
+ue_traveldistance = ue_t{:,10};
+ue_EdgeDistance = ue_t{:,11};
+ue_PercentofEdgeNav = ue_t{:,12};
+ue_guide_trial = ue_t{:,13};
+ue_outlier = ue_t{:,14};
+ue_outlier_distance = ue_t{:,15};
+ue_outlier_latency = ue_t{:,16};
+ue_outlier_latency_scene = ue_t{:,17};
+
+encoder_position = encoder{:,1:2};
+encoder_velocity = encoder{:,3};
+encoder_velocity_smoothing_500ms = encoder{:,4};
+encoder_distance = encoder{:,5};
+encoder_degree = encoder{:,6};
+encoder_angspeed = encoder{:,7};
+
+NumberofFrame = size(ue_timestamp.main,1);
+NumberofTrial = ue_trial.main(NumberofFrame)-1;
+
+
 %% theta power
 theta = [ROOT.Theta 'LE' rat '\rat' rat '-' ss '\AG' num2str(theta_info.bestTT_iHP) '_RateReduced_3-300filtered.ncs'];
     HeaderExtractionFlag = 1;
@@ -136,62 +136,6 @@ CSCdata.eeg = CSCdata.eeg.*CSCdata.ADBitVolts;
 plot(f,10*log10(psd));
 ylabel('dB');
 xlabel('frequency (Hz)');
-
-% % time
-% t = 0;
-% trial_time = [];
-% for i = 1:NumberofTrial
-%        t = t+1;
-%        trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
-%        trial_time(t,2) = tick_timestamp(ue_Trialend(i)); %navigation end 
-%        trial_time(t,3) = i;  
-% end
-% 
-% 
-% % === inputs you already have ===
-% % thetaband_iHP.eeg        (or raw_iHP.eeg)
-% % thetaband_iHP.timestamp
-% % trial_time(:,1:2)        [start end] timestamps (same unit as timestamp)
-% 
-% thetaBand = [6 12];
-% 
-% % Welch params (적당히 무난한 세팅)
-% winSec = 1;                      % 1 s window
-% win = round(winSec*Fs);
-% if mod(win,2)==1, win = win+1; end
-% noverlap = round(0.5*win);       % 50% overlap
-% nfft = max(2^nextpow2(win), win);
-% 
-% nT = size(trial_time,1);
-% thetaP_trial = nan(nT,1);
-% 
-% for i = 1:nT
-% 
-%     tS = trial_time(i,1);
-%     tE = trial_time(i,2);
-% 
-%     [~, idxStart] = min(abs(thetaband_iHP.timestamp - tS));
-%     [~, idxEnd]   = min(abs(thetaband_iHP.timestamp - tE));
-%     if idxEnd <= idxStart, continue; end
-% 
-%     x = double(thetaband_iHP.eeg(idxStart:idxEnd));
-%     x = x - mean(x,'omitnan');                 % DC 제거 (권장)
-% 
-%     % PSD (Welch)
-%     [psdwelch,f] = pwelch(x, win, noverlap, nfft, Fs);
-% 
-%     % theta band power = PSD를 6-12Hz에서 적분
-%     thetaP_trial(i) = bandpower(psdwelch, f, thetaBand, 'psd');
-% end
-% 
-% % trial 평균 theta power
-% thetaP_mean = mean(thetaP_trial,'omitnan');
-
-
-
-
-
-
 
 
 
@@ -627,7 +571,7 @@ for i = 1:NumberofTrial
     if ue_performance_available(i) == 1 %& ue_start_direction(i) == 90 %start direction
        t = t+1;
        trial_time(t,1) = tick_timestamp(ue_Trialstart(i)); %navigation start 
-       trial_time(t,2) = tick_timestamp(ue_Trialend(i)); %navigation end 
+       trial_time(t,2) = tick_timestamp(ue_RewardzoneArrival(i)); %navigation end 
        trial_time(t,3) = i;  
        trial_time(t,4) = tick_timestamp(ue_Trialstart_ITI(i)); % ITI start 
     end
@@ -699,7 +643,7 @@ row = row + 1;
     T_out.stage(s,1) = string(session_list.stage(row));
 
     end
-           
+end           
 % g = T.goal;
 % st = T.stage;
 % th = T.theta_power;

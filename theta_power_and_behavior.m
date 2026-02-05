@@ -26,7 +26,7 @@ load([ROOT.Info '\session_info.mat']);
 load(['D:\2. Neural data\Analysis\2.LFP_filtering_PSD\2.1.bestTT\2025-11-26\theta_TT.mat']);
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
-target = '774-16';
+target = '774-10';
 temp = split(target, '-');
 rat = temp{1};
 ss = num2str(str2double(temp{2}));
@@ -286,12 +286,12 @@ fill([xBin fliplr(xBin)], ...
 h2 = plot(xBin, vel_mean, 'LineWidth',2);
 ylabel('Velocity');
 
-xlabel('Normalised time within trial');
+xlabel('Normalized time within trial');
 title(['Session ' rat '-' ss ' | theta power & velocity (100-bin average)']);
 legend([h1 h2], {'Theta power','Velocity'}, 'Location','best');
 
 fig = gcf;
-fname = fullfile(ROOT.Save, ['theta_vs_velocity_North(mPFC)' target '.png']);
+fname = fullfile(ROOT.Save, ['theta_vs_velocity_North(iHP)' target '.png']);
 saveas(fig, fname);
 
 
