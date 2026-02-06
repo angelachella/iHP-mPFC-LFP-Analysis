@@ -26,7 +26,7 @@ load([ROOT.Info '\session_info.mat']);
 load(['D:\2. Neural data\Analysis\2.LFP_filtering_PSD\2.1.bestTT\2025-11-26\theta_TT.mat']);
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
-target = '774-10';
+target = '779-19';
 temp = split(target, '-');
 rat = temp{1};
 ss = num2str(str2double(temp{2}));
@@ -156,9 +156,9 @@ for i = 1:NumberofTrial
         continue;
     end
 
-     % if ue_start_direction(i) ~= 90 
-     %     continue;
-     % end
+     if ue_start_direction(i) ~= 90 
+         continue;
+     end
 
     if ue_t.performance(i) ~=1
         continue;
@@ -305,7 +305,7 @@ xBin = linspace(0,1,nBin);
 % Requires: ThetaBin (trial x bin), VelBin (trial x bin)
 %% ============================================================
 
-useType = 'Pearson';   % 'Pearson'도 가능
+useType = 'Spearman';   % 'Pearson'도 가능
 doZ = false;            % true면 theta/vel을 전체 z-score로 표준화해서 shape만 보기
 
 % 1) Flatten (trial x bin) -> (N x 1)
