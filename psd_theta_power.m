@@ -77,7 +77,7 @@ for rr = 1:numel(rat_list)
         theta_info = theta_TT.(target_ss_id);
 
         %% ===== load behaviour =====
-        load(behFile, 'cheetah','ue_t');
+        load(behFile, 'cheetah','ue_t','encoder');
         tick_timestamp = cheetah.tick;
 
         ue_Trialstart          = ue_t{:,1};
@@ -98,11 +98,11 @@ for rr = 1:numel(rat_list)
             trial_time(i,1) = tStart;
             trial_time(i,2) = tEnd;
 
-            % ITI time: ITI start -> Trial start
-            if ~isempty(ue_Trialstart_ITI) && numel(ue_Trialstart_ITI) >= i && ~isnan(ue_Trialstart_ITI(i))
-                tITI = tick_timestamp(ue_Trialstart_ITI(i));
-                iti_time(i,1) = tITI;
-                iti_time(i,2) = tStart;
+            % % ITI time: ITI start -> Trial start
+            % if ~isempty(ue_Trialstart_ITI) && numel(ue_Trialstart_ITI) >= i && ~isnan(ue_Trialstart_ITI(i))
+            %     tITI = tick_timestamp(ue_Trialstart_ITI(i));
+            %     iti_time(i,1) = tITI;
+            %     iti_time(i,2) = tStart;
             end
         end
 

@@ -26,7 +26,7 @@ load([ROOT.Info '\session_info.mat']);
 load(['D:\2. Neural data\Analysis\2.LFP_filtering_PSD\2.1.bestTT\2025-11-26\theta_TT.mat']);
 addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
 
-target = '779-19';
+target = '774-10';
 temp = split(target, '-');
 rat = temp{1};
 ss = num2str(str2double(temp{2}));
@@ -156,13 +156,13 @@ for i = 1:NumberofTrial
         continue;
     end
 
-     if ue_start_direction(i) ~= 90 
-         continue;
-     end
-
-    if ue_t.performance(i) ~=1
-        continue;
-    end
+    %  if ue_start_direction(i) ~= 90 
+    %      continue;
+    %  end
+    % 
+    % if ue_t.performance(i) ~=1
+    %     continue;
+    % end
 
     % 
     % if ue_latency(i) > threshold_l
@@ -180,7 +180,7 @@ for i = 1:NumberofTrial
 end
 
 %velocity 
-enc_vel = abs(encoder_angspeed);
+enc_vel = encoder_velocity;
 
 all_vel = [];              % 모든 trial 구간 velocity를 이어붙인 1개의 벡터
 all_trial_id = [];         % (옵션) 각 샘플이 어떤 trial인지 표시
@@ -251,14 +251,22 @@ for i = 1:nTrial
 
     %v = smoothdata(v, "gaussian", wVel);
 
-    tt_vel = linspace(0,1,numel(v));
+   tt_vel = linspace(0,1,numel(v));
+edges  = linspace(0,1,nBin+1);
 
-    for b = 1:nBin
-        inBin = tt_vel >= edges(b) & tt_vel < edges(b+1);
-        if any(inBin)
-            VelBin(i,b) = mean(v(inBin),'omitnan');
+for b = 1:nBin
+    inBin = tt_vel >= edges(b) & tt_vel < edges(b+1);
+    if any(inBin)
+        v_bin_mean = mean(v(inBin), 'omitnan');   % 먼저 bin 평균
+
+        if v_bin_mean <= 5
+            VelBin(i,b) = NaN;                   % 5 이하이면 이 bin 제외
+        else
+            VelBin(i,b) = v_bin_mean;
         end
     end
+end
+ThetaBin(i, isnan(VelBin(i,:))) = NaN;
 end
 
 
@@ -271,6 +279,8 @@ theta_sem  = std(ThetaBin, 0, 1, 'omitnan') ./ sqrt(sum(~isnan(ThetaBin),1));
 vel_sem    = std(VelBin,   0, 1, 'omitnan') ./ sqrt(sum(~isnan(VelBin),1));
 
 xBin = linspace(0,1,nBin);
+
+[r, p] = corr(theta_mean(:), vel_mean(:), 'Type','Pearson', 'Rows','complete');
 
 
 % % plotting (dual y-axis)
@@ -298,49 +308,8 @@ xBin = linspace(0,1,nBin);
 % fig = gcf;
 % fname = fullfile(ROOT.Save, ['theta_vs_velocity_North(iHP)' target '.png']);
 % saveas(fig, fname);
+% 
 
-
-%% ============================================================
-% Scatter of (VelBin, ThetaBin) across ALL trials & bins + correlation
-% Requires: ThetaBin (trial x bin), VelBin (trial x bin)
-%% ============================================================
-
-useType = 'Spearman';   % 'Pearson'도 가능
-doZ = false;            % true면 theta/vel을 전체 z-score로 표준화해서 shape만 보기
-
-% 1) Flatten (trial x bin) -> (N x 1)
-theta_all = ThetaBin(:);
-vel_all   = VelBin(:);
-
-% 2) Remove NaNs
-ok = ~isnan(theta_all) & ~isnan(vel_all);
-theta_all = double(theta_all(ok));
-vel_all   = double(vel_all(ok));
-
-% % 3) (optional) z-score
-% if doZ
-%     theta_all = (theta_all - mean(theta_all,'omitnan')) ./ std(theta_all,0,'omitnan');
-%     vel_all   = (vel_all   - mean(vel_all,'omitnan'))   ./ std(vel_all,0,'omitnan');
-% end
-
-% 4) Correlation
-[rho, pval] = corr(theta_all, vel_all, 'Type', useType, 'Rows','complete');
-
-% 5) Fit line (for visual guidance)
-% Pearson이면 polyfit이 직관적이고, Spearman이어도 "시각적 추세선"으로는 OK
-P = polyfit(vel_all, theta_all, 1);
-xfit = linspace(min(vel_all), max(vel_all), 200);
-yfit = polyval(P, xfit);
-
-% 6) Plot
-figure('Color','w'); hold on; box off
-scatter(vel_all, theta_all, 12, 'filled', 'MarkerFaceAlpha', 0.15, 'MarkerEdgeAlpha', 0.15);
-plot(xfit, yfit, 'LineWidth', 2);
-
-xlabel('Velocity (binned)');
-ylabel('Theta power (binned)');
-title(sprintf('LE %s iHP Theta–velocity %s rho = %.3f', ...
-      target, useType, rho));
 
 
 
