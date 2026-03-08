@@ -21,9 +21,9 @@ rat_list = {'774','779','780','781','816','817'};
 %% Output table
 T_out = table( ...
     strings(0,1), nan(0,1), nan(0,1), strings(0,1), nan(0,1), ...
-    nan(0,1), nan(0,1), nan(0,1), ...
+    nan(0,1), nan(0,1), ...
     'VariableNames', {'rat','ss','trial','goal','start_direction', ...
-                      'idPhi','mean_idPhi','nFrame'});
+                      'idPhi','nFrame'});
 
 %% Loop all rats / sessions
 for rr = 1:numel(rat_list)
@@ -41,10 +41,12 @@ for rr = 1:numel(rat_list)
         %% --- load MAT ---
         target  = char(rat + "-" + sprintf('%02d', ss_num));
         behFile = fullfile(ROOT.Data, [target '.mat']);
+
         if ~exist(behFile, 'file')
             fprintf('[SKIP] mat not found: %s\n', behFile);
             continue;
         end
+
         load(behFile, 'ue_t');
 
         %% --- load CSV ---
@@ -59,15 +61,11 @@ for rr = 1:numel(rat_list)
 
         Data = readtable(csvFile);
 
-        ue_position = Data{:,1:2};        % x,y
-        hd          = double(Data{:,7});  %#ok<NASGU>
-        ue_trial    = Data{:,4};          % trial index
-        ue_rza      = Data{:,5};          % rewardzone arrival flag
+        hd       = double(Data{:,7});   % head direction (deg)
+        ue_trial = Data{:,4};           % trial index
+        ue_rza   = Data{:,5};           % rewardzone arrival flag
 
-        x_all = ue_position(:,1);
-        y_all = ue_position(:,2);
-
-        % behaviour info from ue_t
+        % behaviour info
         NumberofTrial = height(ue_t);
         start_dir_all = ue_t{:,'start_direction'};
 
@@ -76,64 +74,39 @@ for rr = 1:numel(rat_list)
 
         for iTrial = 1:NumberofTrial
 
-            % 해당 trial frame들
             idx_trial = find(ue_trial == iTrial);
 
             if isempty(idx_trial)
                 continue;
             end
 
-            % rewardzone arrival 이전까지만 쓰고 싶으면:
+            % reward zone arrival 이전까지만 사용
             idx_rza = idx_trial(ue_rza(idx_trial) == 1);
             if ~isempty(idx_rza)
-                last_idx = idx_rza(1);                 % 첫 rewardzone arrival frame
+                last_idx = idx_rza(1);
                 idx_trial = idx_trial(idx_trial <= last_idx);
             end
 
-            x = x_all(idx_trial);
-            y = y_all(idx_trial);
+            hd_trial = hd(idx_trial);
+            hd_trial = hd_trial(~isnan(hd_trial));
 
-            % remove NaN
-            keep_xy = ~isnan(x) & ~isnan(y);
-            x = x(keep_xy);
-            y = y(keep_xy);
-
-            if numel(x) < 3
-                continue;
-            end
-
-            %% movement direction
-            dx = diff(x);
-            dy = diff(y);
-
-            % zero movement 제거
-            keep_move = ~(dx == 0 & dy == 0);
-            dx = dx(keep_move);
-            dy = dy(keep_move);
-
-            if numel(dx) < 2
-                continue;
-            end
-
-            phi  = atan2(dy, dx);        % radians
-            dphi = wrapToPi(diff(phi));  % radians
+            %% idPhi calculation
+            phi  = deg2rad(hd_trial); % radian으로 변환
+            dphi = wrapToPi(diff(phi)); % 무조건 짧은쪽 회전량으로 계산 
 
             if isempty(dphi)
                 continue;
             end
 
-            abs_dphi = abs(dphi);
-
-            idPhi_val      = nansum(abs_dphi);
-            mean_idPhi_val = mean(abs_dphi, 'omitnan');
-            nFrame_val     = numel(x);
+            idPhi_val = nansum(abs(dphi)); %절댓값-->전체합(한 trial당 회전값 누적) 
+            nFrame_val = numel(hd_trial);
 
             goal_str  = string(SL.goal(k));
             start_dir = start_dir_all(iTrial);
 
             T_add = table( ...
                 rat, ss_num, iTrial, goal_str, start_dir, ...
-                idPhi_val, mean_idPhi_val, nFrame_val, ...
+                idPhi_val, nFrame_val, ...
                 'VariableNames', T_out.Properties.VariableNames);
 
             T_sess = [T_sess; T_add];
@@ -148,30 +121,32 @@ end
 save(fullfile(ROOT.Save, 'idPhi_trial_table.mat'), 'T_out');
 writetable(T_out, fullfile(ROOT.Save, 'idPhi_trial_table.csv'));
 
-%% Histogram: idPhi
-x = T_out.idPhi;
-x = x(~isnan(x));
+%% Histogram
+goal_sel = "West";
+sd_sel   = 90;
 
-f1 = figure('Position',[100 100 500 400]);
-histogram(x, 30);
-xlabel('idPhi (rad)');
-ylabel('Number of trials');
-title(sprintf('Trial-wise idPhi distribution (n = %d)', numel(x)));
-grid on;
-exportgraphics(f1, fullfile(ROOT.Save, 'hist_idPhi.png'), 'Resolution', 300);
-close(f1);
+idx = (string(T_out.goal) == goal_sel) & ...
+      (T_out.start_direction == sd_sel);
 
-%% Histogram: mean_idPhi
-x = T_out.mean_idPhi;
-x = x(~isnan(x));
+Tf = T_out(idx,:);
+n = height(Tf);   % trial 수
 
-f2 = figure('Position',[100 100 500 400]);
-histogram(x, 30);
-xlabel('Mean |dPhi| per step (rad)');
-ylabel('Number of trials');
-title(sprintf('Trial-wise mean idPhi distribution (n = %d)', numel(x)));
-grid on;
-exportgraphics(f2, fullfile(ROOT.Save, 'hist_mean_idPhi.png'), 'Resolution', 300);
-close(f2);
+figure
 
-disp('DONE');
+% histogram bin width
+histogram(Tf.idPhi,'BinWidth',0.5)
+
+xlabel('idPhi','FontSize',14)
+ylabel('Trials','FontSize',14)
+title(sprintf('Goal = %s, Start = %d (n = %d)', goal_sel, sd_sel, n),'FontSize',18)
+
+% x축 범위
+xlim([0 20])
+
+% x축 tick 간격
+xticks(0:1:20)
+
+% 폰트 전체 키우기
+set(gca,'FontSize',14)
+
+grid on
