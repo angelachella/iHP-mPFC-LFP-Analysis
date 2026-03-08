@@ -232,18 +232,35 @@ idx = (lower(string(T_out.goal)) == goal_sel) & (T_out.start_direction == sd_sel
 
 Tf = T_out(idx, :);   % 필터된 trial들만
 
-% % 예: iHP theta vs travel_distance
-% makeScatterCorr(Tf.travel_distance, Tf.mean_vector_length, ...
-%     "travel distance(m)", "Mean Vector Length", ...
-%     fullfile(ROOT.Save, "scatter_iHP_mvlvstravel_east_sd270.png"));
+% 예: iHP theta vs travel_distance
+makeScatterCorr(Tf.travel_distance, Tf.mean_vector_length, ...
+    "travel distance(m)", "Mean Vector Length", ...
+    fullfile(ROOT.Save, "scatter_traveld_east_sd270.png"));
 
-makeScatterCorr(Tf.theta_power_mPFC, Tf.mean_vector_length, ...
-    "mPFC theta power", "Mean Vector Length", ...
-    fullfile(ROOT.Save, "scatter_mPFC_mvl_east_sd270.png"));
+% makeScatterCorr(Tf.theta_power_mPFC, Tf.mean_vector_length, ...
+%     "mPFC theta power", "Mean Vector Length", ...
+%     fullfile(ROOT.Save, "scatter_mPFC_mvl__east_sd270.png"));
 
-hist(Tf.mean_vector_length);
-xlabel('MVL');
-ylabel('trials');
+% %% MVL distribution 
+% goal_sel = "west";
+% sd_sel   = 90;
+% 
+% idx = (lower(string(T_out.goal)) == goal_sel) & (T_out.start_direction == sd_sel);
+% Tf = T_out(idx,:);
+% 
+% n = height(Tf);   % trial 수
+% 
+% figure
+% 
+% histogram(Tf.mean_vector_length, 0:0.05:1)
+% 
+% xlabel('MVL','FontSize',16)
+% ylabel('Trials','FontSize',16)
+% 
+% title(sprintf('Goal = %s, Start = %d (n = %d)', goal_sel, sd_sel, n),'FontSize',18)
+% set(gca,'FontSize',14)
+% 
+% grid on
 %% ===================== functions =====================
 
 function col = getUETCol(ue_t, name1, name2)
