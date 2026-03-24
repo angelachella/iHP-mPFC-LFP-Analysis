@@ -1,6 +1,121 @@
+% clc; clear; close all;
+% 
+% %% Root
+% ROOT.Mother = 'D:';
+% ROOT.Raw    = fullfile(ROOT.Mother,'1. Behavioral data');
+% 
+% today_is = datetime('today');
+% today_is.Format = 'yyyy-MM-dd';
+% today_is = char(today_is);
+% 
+% ROOT.Load = fullfile(ROOT.Raw,'results','outerCircle_first_bump_outward', today_is);
+% 
+% addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
+% 
+% %% Load
+% load(fullfile(ROOT.Load, 'T_outerCircle_first_bump_outward.mat'), 'T_bump');
+% 
+% %% Maze / circle
+% Maze.Outline.x = 0;
+% Maze.Outline.y = 0;
+% Maze.Outline.r = 0.9500;
+% 
+% InnerCircle.r = 0.6500;
+% OuterCircle.r = 0.8000;
+% 
+% RewardZone.inner.r = 0.6500;
+% RewardZone.outer.r = 0.8000;
+% 
+% %% ===== 선택할 세션 =====
+% rat_sel = "817";
+% ss_sel  = 11;
+% 
+% %% filter: 한 세션만
+% idx_valid = T_bump.hit_found == true;
+% idx_sess  = idx_valid & string(T_bump.rat) == rat_sel & T_bump.ss == ss_sel;
+% 
+% Tf = T_bump(idx_sess,:);
+% 
+% %% group 정의
+% idx_green = (strcmpi(string(Tf.goal),"West") & Tf.start_direction == 90) | ...
+%             (strcmpi(string(Tf.goal),"East") & Tf.start_direction == 270);
+% 
+% idx_purple = (strcmpi(string(Tf.goal),"West") & Tf.start_direction == 270) | ...
+%              (strcmpi(string(Tf.goal),"East") & Tf.start_direction == 90);
+% 
+% fprintf('Session %s-%02d\n', rat_sel, ss_sel);
+% fprintf('Green group : %d trials\n', sum(idx_green));
+% fprintf('Purple group: %d trials\n', sum(idx_purple));
+% 
+% %% Plot
+% f = figure('Color','w','Position',[100 100 560 480]);
+% hold on;
+% 
+% % Maze outline
+% p_Outline = Draw_Circle(Maze.Outline.x, Maze.Outline.y, Maze.Outline.r, 4);
+% p_Outline.LineWidth = 0.75;
+% p_Outline.Color = [0.2 0.2 0.2];
+% 
+% % % Inner circle
+% % th = linspace(0, 2*pi, 400);
+% % plot(InnerCircle.r*cos(th), InnerCircle.r*sin(th), '--', ...
+% %     'Color',[0.35 0.6 0.35], 'LineWidth',1);
+% 
+% % Outer circle
+% th = linspace(0, 2*pi, 400);
+% plot(OuterCircle.r*cos(th), OuterCircle.r*sin(th), '--', ...
+%     'Color',[0.35 0.6 0.35], 'LineWidth',1);
+% 
+% % Reward zone arcs
+% p_in = Draw_AngledCircle(0,0, RewardZone.inner.r,2);
+% p_in.LineWidth=1; p_in.LineStyle='-'; p_in.Color=[1 0 0];
+% 
+% p_out = Draw_AngledCircle(0,0, RewardZone.outer.r,2);
+% p_out.LineWidth=1; p_out.LineStyle='-'; p_out.Color=[1 0 0];
+% 
+% plot([p_in.XData(1) p_out.XData(1)], [p_in.YData(1) p_out.YData(1)], 'r-', 'LineWidth',1);
+% plot([p_in.XData(end) p_out.XData(end)], [p_in.YData(end) p_out.YData(end)], 'r-', 'LineWidth',1);
+% 
+% p_in2 = Draw_AngledCircle2(0,0, RewardZone.inner.r,1);
+% p_in2.LineWidth=1; p_in2.Color=[0 0 1];
+% 
+% p_out2 = Draw_AngledCircle2(0,0, RewardZone.outer.r,1);
+% p_out2.LineWidth=1; p_out2.Color=[0 0 1];
+% 
+% plot([p_in2.XData(1) p_out2.XData(1)], [p_in2.YData(1) p_out2.YData(1)], 'b-', 'LineWidth',1);
+% plot([p_in2.XData(end) p_out2.XData(end)], [p_in2.YData(end) p_out2.YData(end)], 'b-', 'LineWidth',1);
+% 
+% % 초록색
+% if any(idx_green)
+%     scatter(Tf.hit_x(idx_green), Tf.hit_y(idx_green), 32, ...
+%         'filled', ...
+%         'MarkerFaceColor', [0.2 0.7 0.2], ...
+%         'MarkerFaceAlpha', 0.45, ...
+%         'MarkerEdgeAlpha', 0.2);
+% end
+% 
+% % 보라색
+% if any(idx_purple)
+%     scatter(Tf.hit_x(idx_purple), Tf.hit_y(idx_purple), 32, ...
+%         'filled', ...
+%         'MarkerFaceColor', [0.55 0.3 0.8], ...
+%         'MarkerFaceAlpha', 0.45, ...
+%         'MarkerEdgeAlpha', 0.2);
+% end
+% 
+% axis equal;
+% axis off;
+% title(sprintf('%s-%02d | first bump on inner circle | green=%d | purple=%d', ...
+%     rat_sel, ss_sel, sum(idx_green), sum(idx_purple)));
+% 
+% %% Save
+% saveas(f, fullfile(ROOT.Load, sprintf('distribution_%s_%02d_outer.png', rat_sel, ss_sel)));
+
+
+
 clc; clear; close all;
 
-%% Root
+%% ===== Root =====
 ROOT.Mother = 'D:';
 ROOT.Raw    = fullfile(ROOT.Mother,'1. Behavioral data');
 
@@ -8,99 +123,128 @@ today_is = datetime('today');
 today_is.Format = 'yyyy-MM-dd';
 today_is = char(today_is);
 
+% T_bump 불러올 폴더
 ROOT.Load = fullfile(ROOT.Raw,'results','innerCircle_first_bump_outward', today_is);
 
-addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
+% figure 저장 폴더
+ROOT.Save = fullfile(ROOT.Raw,'results','innerCircle_first_bump_outward_png', today_is);
+if ~exist(ROOT.Save,'dir')
+    mkdir(ROOT.Save);
+end
 
-%% Load
+%% ===== Load T_bump =====
 load(fullfile(ROOT.Load, 'T_innerCircle_first_bump_outward.mat'), 'T_bump');
 
-%% Maze / circle
+%% ===== Maze / reward zone parameters =====
 Maze.Outline.x = 0;
 Maze.Outline.y = 0;
 Maze.Outline.r = 0.9500;
 
-InnerCircle.r = 0.6500;
-
 RewardZone.inner.r = 0.6500;
 RewardZone.outer.r = 0.8000;
 
-%% ===== 선택할 세션 =====
-rat_sel = "817";
-ss_sel  = 11;
+%% ===== Unique rat-session list =====
+sess_keys = unique(T_bump(:,{'rat','ss'}), 'rows');
 
-%% filter: 한 세션만
-idx_valid = T_bump.hit_found == true;
-idx_sess  = idx_valid & string(T_bump.rat) == rat_sel & T_bump.ss == ss_sel;
+%% ===== Loop over rat-session =====
+for k = 1:height(sess_keys)
 
-Tf = T_bump(idx_sess,:);
+    rat_k = string(sess_keys.rat(k));
+    ss_k  = sess_keys.ss(k);
 
-%% group 정의
-idx_green = (strcmpi(string(Tf.goal),"West") & Tf.start_direction == 90) | ...
-            (strcmpi(string(Tf.goal),"East") & Tf.start_direction == 270);
+    idx_sess = (string(T_bump.rat) == rat_k) & (T_bump.ss == ss_k);
+    Ts = T_bump(idx_sess, :);
 
-idx_purple = (strcmpi(string(Tf.goal),"West") & Tf.start_direction == 270) | ...
-             (strcmpi(string(Tf.goal),"East") & Tf.start_direction == 90);
+    if isempty(Ts)
+        continue;
+    end
 
-fprintf('Session %s-%02d\n', rat_sel, ss_sel);
-fprintf('Green group : %d trials\n', sum(idx_green));
-fprintf('Purple group: %d trials\n', sum(idx_purple));
+    %% ===== Figure =====
+    f = figure('Color','w','Position',[100 100 500 500]);
+    hold on
 
-%% Plot
-f = figure('Color','w','Position',[100 100 560 480]);
-hold on;
+    % Maze outline
+    p_Outline = Draw_Circle(Maze.Outline.x, Maze.Outline.y, Maze.Outline.r, 4);
+    p_Outline.LineWidth = 0.75;
+    p_Outline.Color     = [0.2 0.2 0.2];
 
-% Maze outline
-p_Outline = Draw_Circle(Maze.Outline.x, Maze.Outline.y, Maze.Outline.r, 4);
-p_Outline.LineWidth = 0.75;
-p_Outline.Color = [0.2 0.2 0.2];
+    % Inner circle
+    th = linspace(0, 2*pi, 500);
+    x_in = RewardZone.inner.r * cos(th);
+    y_in = RewardZone.inner.r * sin(th);
+    plot(x_in, y_in, '--', 'Color', [0.4 0.7 0.4], 'LineWidth', 1.2);
 
-% Inner circle
-th = linspace(0, 2*pi, 400);
-plot(InnerCircle.r*cos(th), InnerCircle.r*sin(th), '--', ...
-    'Color',[0.35 0.6 0.35], 'LineWidth',1);
+    % % Outer circle 
+    % th = linspace(0, 2*pi, 500);
+    % x_in = RewardZone.outer.r * cos(th);
+    % y_in = RewardZone.outer.r * sin(th);
+    % plot(x_in, y_in, '--', 'Color', [0.4 0.7 0.4], 'LineWidth', 1.2);
 
-% Reward zone arcs
-p_in = Draw_AngledCircle(0,0, RewardZone.inner.r,2);
-p_in.LineWidth=1; p_in.LineStyle='-'; p_in.Color=[1 0 0];
+    % Start point at maze centre
+    plot(0, 0, 'k+', 'MarkerSize', 12, 'LineWidth', 1.5);
 
-p_out = Draw_AngledCircle(0,0, RewardZone.outer.r,2);
-p_out.LineWidth=1; p_out.LineStyle='-'; p_out.Color=[1 0 0];
+    %% ===== Reward zone arcs =====
+    p_in = Draw_AngledCircle(0,0, RewardZone.inner.r,2);
+    p_in.LineWidth = 1;
+    p_in.LineStyle = '-';
+    
+    p_out = Draw_AngledCircle(0,0, RewardZone.outer.r,2);
+    p_out.LineWidth = 1;
+    p_out.LineStyle = '-';
+    
+    plot([p_in.XData(1)   p_out.XData(1)],   [p_in.YData(1)   p_out.YData(1)],   'r-', 'LineWidth',1);
+    plot([p_in.XData(end) p_out.XData(end)], [p_in.YData(end) p_out.YData(end)], 'r-', 'LineWidth',1);
+    
+    p_in2 = Draw_AngledCircle2(0,0, RewardZone.inner.r,1);
+    p_in2.LineWidth = 1;
+    
+    p_out2 = Draw_AngledCircle2(0,0, RewardZone.outer.r,1);
+    p_out2.LineWidth = 1;
+    
+    plot([p_in2.XData(1)   p_out2.XData(1)],   [p_in2.YData(1)   p_out2.YData(1)],   'b-', 'LineWidth',1);
+    plot([p_in2.XData(end) p_out2.XData(end)], [p_in2.YData(end) p_out2.YData(end)], 'b-', 'LineWidth',1);
 
-plot([p_in.XData(1) p_out.XData(1)], [p_in.YData(1) p_out.YData(1)], 'r-', 'LineWidth',1);
-plot([p_in.XData(end) p_out.XData(end)], [p_in.YData(end) p_out.YData(end)], 'r-', 'LineWidth',1);
+    %% ===== Plot actual T_bump points =====
+    for ii = 1:height(Ts)
 
-p_in2 = Draw_AngledCircle2(0,0, RewardZone.inner.r,1);
-p_in2.LineWidth=1; p_in2.Color=[0 0 1];
+        x = Ts.hit_x(ii);
+        y = Ts.hit_y(ii);
 
-p_out2 = Draw_AngledCircle2(0,0, RewardZone.outer.r,1);
-p_out2.LineWidth=1; p_out2.Color=[0 0 1];
+        if isnan(x) || isnan(y)
+            continue;
+        end
 
-plot([p_in2.XData(1) p_out2.XData(1)], [p_in2.YData(1) p_out2.YData(1)], 'b-', 'LineWidth',1);
-plot([p_in2.XData(end) p_out2.XData(end)], [p_in2.YData(end) p_out2.YData(end)], 'b-', 'LineWidth',1);
+        goal_i = string(Ts.goal(ii));
+        sd_i   = Ts.start_direction(ii);
 
-% 초록색
-if any(idx_green)
-    scatter(Tf.hit_x(idx_green), Tf.hit_y(idx_green), 32, ...
-        'filled', ...
-        'MarkerFaceColor', [0.2 0.7 0.2], ...
-        'MarkerFaceAlpha', 0.45, ...
-        'MarkerEdgeAlpha', 0.2);
+        is_green = (strcmpi(goal_i,'West') && sd_i == 90) || ...
+                   (strcmpi(goal_i,'East') && sd_i == 270);
+
+        is_purple = (strcmpi(goal_i,'West') && sd_i == 270) || ...
+                    (strcmpi(goal_i,'East') && sd_i == 90);
+
+        if is_green
+            plot(x, y, 'o', ...
+                'MarkerSize', 6, ...
+                'MarkerFaceColor', [0.5 0.8 0.5], ...
+                'MarkerEdgeColor', [0.5 0.8 0.5]);
+        elseif is_purple
+            plot(x, y, 'o', ...
+                'MarkerSize', 6, ...
+                'MarkerFaceColor', [0.65 0.45 0.85], ...
+                'MarkerEdgeColor', [0.65 0.45 0.85]);
+        end
+    end
+
+     title(sprintf('Rat %s  |  Session %02d', rat_k, ss_k), ...
+        'FontWeight','normal', 'FontSize', 11);
+
+
+    %% ===== Save =====
+    save_name = sprintf('rat%s_ss%02d.png', char(rat_k), ss_k);
+    exportgraphics(f, fullfile(ROOT.Save, save_name), 'Resolution', 300);
+
+    close(f);
 end
 
-% 보라색
-if any(idx_purple)
-    scatter(Tf.hit_x(idx_purple), Tf.hit_y(idx_purple), 32, ...
-        'filled', ...
-        'MarkerFaceColor', [0.55 0.3 0.8], ...
-        'MarkerFaceAlpha', 0.45, ...
-        'MarkerEdgeAlpha', 0.2);
-end
-
-axis equal;
-axis off;
-title(sprintf('%s-%02d | first bump on inner circle | green=%d | purple=%d', ...
-    rat_sel, ss_sel, sum(idx_green), sum(idx_purple)));
-
-%% Save
-saveas(f, fullfile(ROOT.Load, sprintf('distribution_%s_%02d_green_purple.png', rat_sel, ss_sel)));
+fprintf('Done. All session PNG files saved to:\n%s\n', ROOT.Save);

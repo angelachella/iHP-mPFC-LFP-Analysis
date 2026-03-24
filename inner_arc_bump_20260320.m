@@ -25,7 +25,8 @@ Maze.Outline.x = 0;
 Maze.Outline.y = 0;
 Maze.Outline.r = 0.9500;
 
-InnerCircle.r = 0.6500;
+InnerCircle.r = 0.6500; % reward zone inner circle
+OuterCircle.r = 0.8000; %#ok<NASGU> % reward zone outer circle
 
 %% Output table
 T_bump = table( ...
@@ -34,15 +35,11 @@ T_bump = table( ...
     nan(0,1), ...       % trial
     strings(0,1), ...   % goal
     nan(0,1), ...       % start_direction
-    false(0,1), ...     % hit_found
     nan(0,1), ...       % hit_x
     nan(0,1), ...       % hit_y
-    nan(0,1), ...       % hit_r
     nan(0,1), ...       % hit_angle_deg
-    nan(0,1), ...       % crossing_seg_idx
     'VariableNames', {'rat','ss','trial','goal','start_direction', ...
-                      'hit_found','hit_x','hit_y','hit_r','hit_angle_deg', ...
-                      'crossing_seg_idx'} );
+                      'hit_x','hit_y','hit_angle_deg'} );
 
 %% Main loop
 for rr = 1:numel(rat_list)
@@ -57,6 +54,8 @@ for rr = 1:numel(rat_list)
         if isstring(ss_num) || ischar(ss_num)
             ss_num = str2double(ss_num);
         end
+
+        goal_trial = string(SL.goal(k));   % session-level goal
 
         target  = char(rat + "-" + sprintf('%02d', ss_num));
         behFile = fullfile(ROOT.Data, [target '.mat']);
@@ -78,27 +77,9 @@ for rr = 1:numel(rat_list)
 
         NumberofTrial = height(ue_t);
 
-        %% metadata
-        start_dir_all = getUETCol_local(ue_t, ["start_direction","start direction"]);
-
-        if ismember('goal', SL.Properties.VariableNames)
-            goal_sess = string(SL.goal(k));
-        else
-            goal_sess = "Unknown";
-        end
-
-        fprintf('Processing %s ...\n', target);
-
         for iTrial = 1:NumberofTrial
 
-            %% metadata
-            if ~isempty(start_dir_all) && numel(start_dir_all) >= iTrial
-                start_dir = start_dir_all(iTrial);
-            else
-                start_dir = NaN;
-            end
-
-            goal_trial = string(goal_sess);
+            start_dir = ue_t.start_direction(iTrial);
 
             %% trial trajectory
             idx_trial = find(ue.trial == iTrial & ue.frame_ITI == 0);
@@ -106,32 +87,33 @@ for rr = 1:numel(rat_list)
             if isempty(idx_trial)
                 T_add = table( ...
                     rat, ss_num, iTrial, goal_trial, start_dir, ...
-                    false, NaN, NaN, NaN, NaN, NaN, ...
+                    NaN, NaN, NaN, ...
                     'VariableNames', T_bump.Properties.VariableNames);
                 T_bump = [T_bump; T_add];
                 continue;
             end
 
-            X = ue.position_x(idx_trial);
-            Y = ue.position_y(idx_trial);
+            X  = ue.position_x(idx_trial);
+            Y  = ue.position_y(idx_trial);
+            HD = ue.direction(idx_trial);
 
             if numel(X) < 2
                 T_add = table( ...
                     rat, ss_num, iTrial, goal_trial, start_dir, ...
-                    false, NaN, NaN, NaN, NaN, NaN, ...
+                    NaN, NaN, NaN, ...
                     'VariableNames', T_bump.Properties.VariableNames);
                 T_bump = [T_bump; T_add];
                 continue;
             end
 
             %% 안쪽 -> 바깥쪽 첫 crossing
-            [hit_found, hit_x, hit_y, hit_r, hit_ang, seg_idx] = ...
-                findFirstOutwardCircleCrossing_local(X, Y, InnerCircle.r);
+            [hit_x, hit_y, hit_ang] = ...
+                findFirstOutwardCircleCrossing_local(X, Y, HD, InnerCircle.r);
 
             %% save
             T_add = table( ...
                 rat, ss_num, iTrial, goal_trial, start_dir, ...
-                hit_found, hit_x, hit_y, hit_r, hit_ang, seg_idx, ...
+                hit_x, hit_y, hit_ang, ...
                 'VariableNames', T_bump.Properties.VariableNames);
 
             T_bump = [T_bump; T_add];
@@ -141,42 +123,18 @@ end
 
 %% Save
 save(fullfile(ROOT.Save, 'T_innerCircle_first_bump_outward.mat'), 'T_bump');
-writetable(T_bump, fullfile(ROOT.Save, 'T_innerCircle_first_bump_outward.csv'));
 
 fprintf('\nDone. Table saved.\n');
 
 %% =======================================================================
 % Local functions
 %% =======================================================================
+function [hit_x, hit_y, hit_ang] = ...
+    findFirstOutwardCircleCrossing_local(X, Y, HD, r0)
 
-function col = getUETCol_local(T, candNames)
-    col = [];
-    if ischar(candNames) || isstring(candNames)
-        candNames = cellstr(candNames);
-    end
-
-    vn = string(T.Properties.VariableNames);
-    vn2 = lower(strrep(vn, "_", " "));
-
-    for i = 1:numel(candNames)
-        key = lower(strrep(string(candNames{i}), "_", " "));
-        idx = find(vn2 == key, 1);
-        if ~isempty(idx)
-            col = T.(T.Properties.VariableNames{idx});
-            return;
-        end
-    end
-end
-
-function [hit_found, hit_x, hit_y, hit_r, hit_ang, seg_idx] = ...
-    findFirstOutwardCircleCrossing_local(X, Y, r0)
-
-    hit_found = false;
-    hit_x     = NaN;
-    hit_y     = NaN;
-    hit_r     = NaN;
-    hit_ang   = NaN;
-    seg_idx   = NaN;
+    hit_x   = NaN;
+    hit_y   = NaN;
+    hit_ang = NaN;
 
     R = hypot(X, Y);
 
@@ -184,112 +142,92 @@ function [hit_found, hit_x, hit_y, hit_r, hit_ang, seg_idx] = ...
     idx = find(R(1:end-1) < r0 & R(2:end) >= r0, 1, 'first');
 
     if isempty(idx)
-        % 혹시 첫 점이 이미 원 위/바깥이면 첫 점 기록
+        % 이미 처음부터 바깥쪽에 있는 경우: 처음 r>=r0 인 실제 점 사용
         idx2 = find(R >= r0, 1, 'first');
         if ~isempty(idx2)
-            hit_found = true;
-            hit_x = X(idx2);
-            hit_y = Y(idx2);
-            hit_r = hypot(hit_x, hit_y);
-            hit_ang = mod(atan2d(hit_y, hit_x), 360);
-            seg_idx = idx2;
+            hit_x   = X(idx2);
+            hit_y   = Y(idx2);
+            hit_ang = HD(idx2);
         end
         return;
     end
 
-    % 선형보간
-    x1 = X(idx);   y1 = Y(idx);
-    x2 = X(idx+1); y2 = Y(idx+1);
-
+    % crossing 구간의 두 실제 점
     r1 = R(idx);
     r2 = R(idx+1);
 
-    if r1 == r2
-        t = 0;
+    % r0에 더 가까운 실제 샘플점 선택
+    if abs(r1 - r0) <= abs(r2 - r0)
+        pick = idx;
     else
-        t = (r0 - r1) / (r2 - r1);
-        t = max(0, min(1, t));
+        pick = idx + 1;
     end
 
-    hit_x = x1 + t*(x2 - x1);
-    hit_y = y1 + t*(y2 - y1);
-    hit_r = hypot(hit_x, hit_y);
-    hit_ang = mod(atan2d(hit_y, hit_x), 360);
-    seg_idx = idx;
-
-    hit_found = true;
+    hit_x   = X(pick);
+    hit_y   = Y(pick);
+    hit_ang = HD(pick);
 end
 
-
-
-%% Distribution plot
-% clc; clear; close all;
+% Maze.Outline.x = 0;
+% Maze.Outline.y = 0;
+% Maze.Outline.r = 0.9500;
 % 
-% %% Root
-% ROOT.Mother = 'D:';
-% ROOT.Raw    = fullfile(ROOT.Mother,'1. Behavioral data');
+% RewardZone.inner.r = 0.6500;
+% RewardZone.outer.r = 0.8000;
 % 
-% today_is = datetime('today');
-% today_is.Format = 'yyyy-MM-dd';
-% today_is = char(today_is);
+% RewardZone.arch.x  = -0.7715;   % west
+% RewardZone.arch.y  =  0.1552;
+% RewardZone.sea.x   = -0.780;
+% RewardZone.sea.y   = -0.5130;
+% RewardZone.house.x =  0.7715;   % east
+% RewardZone.house.y = -0.1552;
 % 
-% ROOT.Load = fullfile(ROOT.Raw,'results','innerCircle_first_bump_outward', today_is);
 % 
-% addpath(genpath(fullfile(ROOT.Mother, 'toolbox')));
+% f = figure('Color','w','Position',[100,100,500,500]);
+% hold on
 % 
-% %% Load
-% load(fullfile(ROOT.Load, 'T_innerCircle_first_bump_outward.mat'), 'T_bump');
-
-%% Maze / circle
-Maze.Outline.x = 0;
-Maze.Outline.y = 0;
-Maze.Outline.r = 0.9500;
-
-InnerCircle.r = 0.6500;
-
-%% 원하는 조건
-rat_sel  = ;      % 예: "774"
-ss_sel   = [];      % 예: 5
-goal_sel = [];      % 예: "West"
-sd_sel   = [];      % 예: 90
-
-%% filtering
-idx = T_bump.hit_found == true;
-
-if ~isempty(rat_sel)
-    idx = idx & (string(T_bump.rat) == string(rat_sel));
-end
-
-if ~isempty(ss_sel)
-    idx = idx & (T_bump.ss == ss_sel);
-end
-
-if ~isempty(goal_sel)
-    idx = idx & strcmpi(string(T_bump.goal), string(goal_sel));
-end
-
-if ~isempty(sd_sel)
-    idx = idx & (T_bump.start_direction == sd_sel);
-end
-
-Tf = T_bump(idx,:);
-
-%% Plot
-f = figure('Color','w','Position',[100 100 520 450]);
-hold on;
-
-p_Outline = Draw_Circle(Maze.Outline.x, Maze.Outline.y, Maze.Outline.r, 4);
-p_Outline.LineWidth = 0.75;
-p_Outline.Color = [0.2 0.2 0.2];
-
-th = linspace(0, 2*pi, 400);
-plot(InnerCircle.r*cos(th), InnerCircle.r*sin(th), '--', 'LineWidth', 1);
-
-scatter(Tf.hit_x, Tf.hit_y, 28, ...
-    'filled', ...
-    'MarkerFaceAlpha', 0.35, ...
-    'MarkerEdgeAlpha', 0.2);
-
-axis equal;
-axis off;
-title(sprintf('First outward bump on r = %.2f circle | n = %d', InnerCircle.r, height(Tf)));
+% %% ===== Maze outline =====
+% p_Outline = Draw_Circle(Maze.Outline.x, Maze.Outline.y, Maze.Outline.r, 4);
+% p_Outline.LineWidth = 0.75;
+% p_Outline.Color = [0.2 0.2 0.2];
+% 
+% %% ===== Inner circle =====
+% th = linspace(0, 2*pi, 500);
+% x_in = RewardZone.inner.r * cos(th);
+% y_in = RewardZone.inner.r * sin(th);
+% plot(x_in, y_in, '--', 'Color', [0.4 0.7 0.4], 'LineWidth', 1.2);
+% 
+% %% ===== Start point at maze centre =====
+% plot(0, 0, 'k+', 'MarkerSize', 12, 'LineWidth', 1.5);
+% 
+% %% ===== T_bump points (actual x,y) =====
+% for ii = 1:height(T_bump)
+% 
+%     x = T_bump.hit_x(ii);
+%     y = T_bump.hit_y(ii);
+% 
+%     if isnan(x) || isnan(y)
+%         continue;
+%     end
+% 
+%     goal_i = string(T_bump.goal(ii));
+%     sd_i   = T_bump.start_direction(ii);
+% 
+%     is_green = (strcmpi(goal_i,'West') && sd_i == 90) || ...
+%                (strcmpi(goal_i,'East') && sd_i == 270);
+% 
+%     is_purple = (strcmpi(goal_i,'West') && sd_i == 270) || ...
+%                 (strcmpi(goal_i,'East') && sd_i == 90);
+% 
+%     if is_green
+%         plot(x, y, 'o', ...
+%             'MarkerSize', 6, ...
+%             'MarkerFaceColor', [0.5 0.8 0.5], ...
+%             'MarkerEdgeColor', [0.5 0.8 0.5]);
+%     elseif is_purple
+%         plot(x, y, 'o', ...
+%             'MarkerSize', 6, ...
+%             'MarkerFaceColor', [0.65 0.45 0.85], ...
+%             'MarkerEdgeColor', [0.65 0.45 0.85]);
+%     end
+% end
