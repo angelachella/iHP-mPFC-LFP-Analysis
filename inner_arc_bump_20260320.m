@@ -136,8 +136,6 @@ function [hit_x, hit_y, hit_ang] = ...
     hit_y   = NaN;
     hit_ang = NaN;
 
-    R = hypot(X, Y);
-
     % 안쪽 -> 바깥쪽으로 처음 나가는 구간
     idx = find(R(1:end-1) < r0 & R(2:end) >= r0, 1, 'first');
 
@@ -156,7 +154,7 @@ function [hit_x, hit_y, hit_ang] = ...
     r1 = R(idx);
     r2 = R(idx+1);
 
-    % r0에 더 가까운 실제 샘플점 선택
+    % r0에 가장 가까운 실제 점
     if abs(r1 - r0) <= abs(r2 - r0)
         pick = idx;
     else
@@ -167,6 +165,8 @@ function [hit_x, hit_y, hit_ang] = ...
     hit_y   = Y(pick);
     hit_ang = HD(pick);
 end
+
+
 
 % Maze.Outline.x = 0;
 % Maze.Outline.y = 0;
