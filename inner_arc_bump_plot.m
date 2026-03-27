@@ -15,16 +15,16 @@
 % %% Load
 % load(fullfile(ROOT.Load, 'T_outerCircle_first_bump_outward.mat'), 'T_bump');
 % 
-% %% Maze / circle
-% Maze.Outline.x = 0;
-% Maze.Outline.y = 0;
-% Maze.Outline.r = 0.9500;
-% 
-% InnerCircle.r = 0.6500;
-% OuterCircle.r = 0.8000;
-% 
-% RewardZone.inner.r = 0.6500;
-% RewardZone.outer.r = 0.8000;
+%% Maze / circle
+Maze.Outline.x = 0;
+Maze.Outline.y = 0;
+Maze.Outline.r = 0.9500;
+
+InnerCircle.r = 0.6500;
+OuterCircle.r = 0.8000;
+
+RewardZone.inner.r = 0.6500;
+RewardZone.outer.r = 0.8000;
 % 
 % %% ===== 선택할 세션 =====
 % rat_sel = "817";
@@ -124,7 +124,7 @@ today_is.Format = 'yyyy-MM-dd';
 today_is = char(today_is);
 
 % T_bump 불러올 폴더
-ROOT.Load = fullfile(ROOT.Raw,'results','innerCircle_first_bump_outward', today_is);
+ROOT.Load = fullfile(ROOT.Raw,'results','innerCircle_first_bump_outward', '2026-03-24');
 
 % figure 저장 폴더
 ROOT.Save = fullfile(ROOT.Raw,'results','innerCircle_first_bump_outward_png', today_is);
@@ -311,9 +311,9 @@ load(fullfile(ROOT.Load, 'T_innerCircle_first_bump_outward.mat'), 'T_bump');
 rat_sel = ["817"];   % <- 여기서 원하는 rat 지정
 
 %% ===== User-defined sessions =====
-pre_sessions      = [2 3];
-learning_sessions = [4 5];
-post_sessions     = [6 7];
+pre_sessions      = [8];
+learning_sessions = [9];
+post_sessions     = [10 11];
 
 %% ===== Valid rows =====
 idx_valid = ~isnan(T_bump.hit_angle_deg) & ~isnan(T_bump.start_direction);
