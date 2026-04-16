@@ -22,7 +22,8 @@ load(fullfile(ROOT.bump),'T_bump');
 load(fullfile(ROOT.Info,'session_info.mat'),'session_list');
 load('D:\2. Neural data\Analysis\2.LFP_filtering_PSD\2.1.bestTT\2025-11-26\theta_TT.mat','theta_TT');
 
-%% Coherence parameters
+%% parameters
+% Coherence parameters
 params.Fs       = 2000;
 params.fpass    = [1 20];   % coherence spectrum 계산 범위
 params.tapers   = [3 5];
@@ -31,6 +32,10 @@ params.err      = [2 0.05];
 params.pad      = 0;
 
 theta_band = [6 12];
+
+% speed filtering parameter
+speed_thr = 5;      % cm/s
+min_run_len = 5;    % 5 consecutive frames
 
 %% Output table
 T_out = table();
@@ -258,4 +263,4 @@ for ir = 1:numel(rat_list)
 end
 
 %% Save
-save(fullfile(ROOT.Save,'theta_coherence_trial_PC.mat'),'T_out');
+save(fullfile(ROOT.Save,'theta_coherence_trial_PC.mat'),'T_out_5cm/s');
